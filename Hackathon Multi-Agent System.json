@@ -1,0 +1,299 @@
+{
+  "name": "Hackathon Multi-Agent System",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -48,
+        0
+      ],
+      "id": "e1c01a2f-5a43-4767-8f76-6339e8a5caf2",
+      "name": "When chat message received",
+      "webhookId": "72351e3b-2bed-46ba-8a18-02f399655e52"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are the Hackathon Finder Agent.\n\nYour only responsibility is to find hackathons based on the user's request.\n\nYou must:\n1. Understand the user's requirements such as:\n   - location\n   - topic/category\n   - online or in-person\n   - registration status\n   - date or deadline\n2. Search the web for relevant hackathons using your available search tools.\n3. Prefer official hackathon or organizer sources.\n4. Do not invent hackathons or information.\n5. Return only hackathons that you can verify from a search source.\n6. Collect the following information whenever available:\n   - name\n   - organizer\n   - description\n   - category\n   - location\n   - start_date\n   - end_date\n   - registration_deadline\n   - registration_status\n   - eligibility\n   - official_url\n7. Return the results in a valid JSON format with a \"hackathons\" array containing objects with the fields above.\n8. If no verified hackathons are found, return:\n   {\n     \"hackathons\": [],\n     \"message\": \"No verified hackathons found matching the user's criteria.\"\n   }\n\nDo not rank hackathons based on personal interests or recommend choices.\nYour job is strictly to FIND, COLLECT, and VERIFY hackathons."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        240,
+        0
+      ],
+      "id": "24dfe7ef-d542-4703-b0d3-2dd8b750a3cb",
+      "name": "Hackathon Finder Agent"
+    },
+    {
+      "parameters": {
+        "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Query', `The search query to find hackathons`, 'string') }}",
+        "options": {}
+      },
+      "type": "@tavily/n8n-nodes-tavily.tavilyTool",
+      "typeVersion": 1,
+      "position": [
+        384,
+        208
+      ],
+      "id": "1b73c54c-ad0a-4d5c-ade0-5bde8dc8a532",
+      "name": "Search in Tavily",
+      "credentials": {
+        "tavilyApi": {
+          "id": "rr0xEEAO2jrIuyB8",
+          "name": "Tavily account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Today's date: {{ $now.toFormat('yyyy-MM-dd') }}\n\nUser request:\n{{ $('When chat message received').item.json.chatInput }}\n\nAgent 1 Research:\n{{ JSON.stringify($('Hackathon Finder Agent').item.json.output) }}\n\nYour role:\nYou are the Analysis and Personalization Agent in a multi-agent hackathon research system.\n\nYour task is to analyze the research collected by Agent 1 and produce a personalized, accurate answer that matches the user's request.\n\nInstructions:\n\n1. Analyze the hackathons found by Agent 1.\n2. Select only hackathons that match the user's request.\n3. Prefer relevant, upcoming, or currently open hackathons when the user asks for available opportunities.\n4. Use only information provided by Agent 1 Research.\n5. Do not invent, assume, or modify any hackathon information.\n6. If information is missing or unknown, use null instead of guessing.\n7. Remove irrelevant, duplicate, or unsupported hackathons.\n8. Make the result concise and relevant to the user's request.\n9. Do not include hackathons that do not satisfy the user's criteria.\n10. Make sure all important details come directly from Agent 1 Research.\n\nRequired output format:\n\n{\n  \"hackathons\": [\n    {\n      \"name\": \"\",\n      \"organizer\": \"\",\n      \"deadline\": \"\",\n      \"location\": \"\",\n      \"registration_status\": \"\",\n      \"registration_link\": \"\"\n    }\n  ]\n}\n\nIf no hackathons match the user's request, return exactly:\n\n{\"hackathons\":[]}\n\nAlways return valid JSON only.\nDo not add explanations, markdown, or text outside the JSON.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a hackathon personalizer. You receive a list of hackathons and a user's preferences (interests, skills, location, availability).\n\nUser Preferences Profile:\n- Preferred Location: Jeddah, Saudi Arabia\n- Skills & Interests: Software Engineering, AI, Web Development, Smart Systems.\n\nYour job:\n1. Remove hackathons that clearly don't fit the user.\n2. Score each remaining one from 1 to 10 for fit based on the User Preferences Profile above and conversation history.\n3. Return the top 5, sorted by score, with a one-sentence reason each.\n\nRules:\n- Use only hackathons from the provided list. Never invent one.\n- Keep every original field (name, link, deadline, location) unchanged.\n- If a preference is missing, don't guess it; rank on what you have.\n- Remove any hackathon whose deadline or end date is before today's date, or whose registration status is Closed.\n- If the deadline is unknown, keep the hackathon but lower its score by 2 and say so in the reason."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        592,
+        0
+      ],
+      "id": "fbf1e803-eb33-40e2-a893-1dabddfcf153",
+      "name": "Agent 2 - Personalizer"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Review the following hackathon research and draft answer.\n\nUSER QUESTION:\n{{ $('When chat message received').item.json.chatInput }}\n\nAGENT 1 RESEARCH:\n{{ JSON.stringify($('Hackathon Finder Agent').item.json.output) }}\n\nAGENT 2 DRAFT:\n{{ JSON.stringify($('Agent 2 - Personalizer').item.json.output) }}\n\nReview the Agent 2 draft against the research from Agent 1.\n\nReturn only:\n\nSTATUS: APPROVED or REJECTED\n\nISSUES:\n- List any issues found.\n- If there are no issues, write \"None.\"\n\nFEEDBACK:\n- Provide correction instructions if rejected.\n- If approved, write \"None.\"",
+        "options": {
+          "systemMessage": "You are the Supervisor and Governance Agent in a multi-agent hackathon research system.\n\nYour job is to review the draft answer produced by the Analysis Agent.\n\nYou must verify the draft against the raw research results provided by the Research Agent.\n\nCheck the following policies:\n1. Do not allow invented information.\n2. Every hackathon mentioned must have a supporting source.\n3. Only include hackathons that match the user's request.\n4. Do not claim that registration is open unless the research data supports it.\n5. Check dates, deadlines, organizers, locations, and other important facts against the raw results.\n6. Keep the final answer factual, concise, and relevant.\n\nIf the draft satisfies all policies, return APPROVED.\n\nIf there are problems, return REJECTED and clearly explain what needs to be corrected.\n\nYour response must use this format:\n\nSTATUS: APPROVED or REJECTED\n\nISSUES:\n- List any issues found.\n- If there are no issues, write \"None.\"\n\nFEEDBACK:\n- Provide correction instructions if rejected.\n- If approved, write \"None.\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        960,
+        0
+      ],
+      "id": "2ae784ba-77e0-478a-973f-f2bf75859ab3",
+      "name": "Supervisor Agent"
+    },
+    {
+      "parameters": {
+        "options": {
+          "maxTokens": 4000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        240,
+        208
+      ],
+      "id": "ef67ae23-0c8b-4566-a9ce-bd77b6ed8e8d",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "C36rhj8ZcZ1K4bqX",
+          "name": "OpenRouter account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "maxTokens": 4000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        592,
+        160
+      ],
+      "id": "9ba1cdc1-c1fd-468d-891a-95281fda9125",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "C36rhj8ZcZ1K4bqX",
+          "name": "OpenRouter account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"hackathons\": [\n    {\n      \"name\": \"AI Hackathon Riyadh\",\n      \"link\": \"https://example.com\",\n      \"deadline\": \"2026-11-01\",\n      \"location\": \"Riyadh\",\n      \"score\": 8,\n      \"reason\": \"Matches the user's interest in AI\"\n    }\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        752,
+        144
+      ],
+      "id": "75a4c724-4c3d-4f25-ae6e-6fea61588956",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "options": {
+          "maxTokens": 2048
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        960,
+        208
+      ],
+      "id": "11cdc74c-2cb1-4b9b-af79-5c44398ee84c",
+      "name": "OpenRouter Chat Model2",
+      "credentials": {
+        "openRouterApi": {
+          "id": "OKaddmj6UDTbmrvb",
+          "name": "OpenRouter account 3"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        688,
+        320
+      ],
+      "id": "77614060-68e0-4437-9479-4ca503f31af0",
+      "name": "Simple Memory"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Hackathon Finder Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hackathon Finder Agent": {
+      "main": [
+        [
+          {
+            "node": "Agent 2 - Personalizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search in Tavily": {
+      "ai_tool": [
+        [
+          {
+            "node": "Hackathon Finder Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 2 - Personalizer": {
+      "main": [
+        [
+          {
+            "node": "Supervisor Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Hackathon Finder Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent 2 - Personalizer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Agent 2 - Personalizer",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Supervisor Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supervisor Agent": {
+      "main": [
+        []
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agent 2 - Personalizer",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "versionId": "5bacdad7-4aab-4697-87d2-915047911d22",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e6eb86a1d84ebb3b99274fa81e9a9f79f7f3ee9ee07fd9bb294ec721272324eb"
+  },
+  "nodeGroups": [],
+  "id": "wuKQkyxx9UoPtjZn",
+  "tags": []
+}
