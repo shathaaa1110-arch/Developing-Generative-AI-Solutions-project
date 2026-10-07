@@ -33,5 +33,5 @@ The work is split between three agents so that no single model both writes the a
 
 | File | Description |
 |---|---|
-| `hackathon_multi_agent_workflow.json` | The n8n workflow to import |
+| `Hackathon Multi-Agent System.json` | The n8n workflow to import |
 | `README.md` | This file |
