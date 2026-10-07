@@ -8,7 +8,15 @@ This is the final project for the **Developing Generative AI Solutions** trainin
 
 SDAIA Academy on GitHub: https://github.com/SDAIAAcademy
 
-**Team:** C2
+**Team:** 
+
+## Team
+
+| Member | GitHub | Role |
+|---|---|---|
+| Shatha Alanazi | [@your-username](https://github.com/shathaaa1110-arch) 
+| Haya Aldossari | [@their-username](https://github.com/hayaaldossari) 
+| Yara Algarni | [@their-username](https://github.com/yaraalgarni-dot) 
 ## Project idea
 
 Finding a hackathon worth joining takes time: listings are scattered, many have closed, and most do not match a person's interests or constraints. This system does that work from one chat message.
