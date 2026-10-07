@@ -59,14 +59,14 @@ The architecture consists of 3 specialized AI Agents operating under strict gove
 
 | File | Description |
 |---|---|
-| `hackathon_multi_agent_workflow.json` | The n8n workflow to import |
+| `Hackathon Multi-Agent System.json` | The n8n workflow to import |
 | `README.md` | This file |
 
 ---
 
 ## How to Import and Run
 
-1. Download the `hackathon_multi_agent_workflow.json` file from this repository.
+1. Download the `Hackathon Multi-Agent System.json` file from this repository.
 2. Open your **n8n** instance and click **Import from File**.
 3. Configure your API Keys for **Groq** and **Tavily** in the credentials section.
 4. Execute the workflow via the Chat Trigger.
