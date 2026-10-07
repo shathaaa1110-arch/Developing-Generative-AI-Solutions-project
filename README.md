@@ -14,9 +14,9 @@ SDAIA Academy on GitHub: https://github.com/SDAIAAcademy
 
 | Member 
 |---|
-| [Shatha Alanazi] (https://github.com/shathaaa1110-arch) 
-| [Haya Aldossari] (https://github.com/hayaaldossari) 
-| [Yara Algarni] (https://github.com/yaraalgarni-dot) 
+| [@Shatha Alanazi] (https://github.com/shathaaa1110-arch) 
+| [@Haya Aldossari] (https://github.com/hayaaldossari) 
+| [@Yara Algarni] (https://github.com/yaraalgarni-dot) 
 ## Project idea
 
 Finding a hackathon worth joining takes time: listings are scattered, many have closed, and most do not match a person's interests or constraints. This system does that work from one chat message.
