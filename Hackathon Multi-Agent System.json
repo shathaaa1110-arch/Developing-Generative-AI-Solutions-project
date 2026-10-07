@@ -1,0 +1,381 @@
+{
+  "name": "Hackathon Multi-Agent System",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -48,
+        160
+      ],
+      "id": "e1c01a2f-5a43-4767-8f76-6339e8a5caf2",
+      "name": "When chat message received",
+      "webhookId": "72351e3b-2bed-46ba-8a18-02f399655e52"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "\"Summarize the results concisely before passing them. Return only the top 3 hackathons with essential info (Title, Date, Link) without raw webpage text.\"",
+        "options": {
+          "systemMessage": "You are the Hackathon Finder Agent.\n\nYour only responsibility is to find hackathons based on the user's request.\n\nYou must:\n1. Understand the user's requirements such as:\n   - location\n   - topic/category\n   - online or in-person\n   - registration status\n   - date or deadline\n2. Search the web for relevant hackathons using your available search tools.\n3. Prefer official hackathon or organizer sources.\n4. Do not invent hackathons or information.\n5. Return only hackathons that you can verify from a search source.\n6. Collect the following information whenever available:\n   - name\n   - organizer\n   - description\n   - category\n   - location\n   - start_date\n   - end_date\n   - registration_deadline\n   - registration_status\n   - eligibility\n   - official_url\n7. Return the results in a valid JSON format with a \"hackathons\" array containing objects with the fields above.\n8. If no verified hackathons are found, return:\n   {\n     \"hackathons\": [],\n     \"message\": \"No verified hackathons found matching the user's criteria.\"\n   }\n\nDo not rank hackathons based on personal interests or recommend choices.\nYour job is strictly to FIND, COLLECT, and VERIFY hackathons.\n\nKeep your JSON response extremely concise. Include only essential attributes (name, date, official_url) for each item. Do not generate markdown explanations, intro/outro text, or unnecessary details."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        176,
+        160
+      ],
+      "id": "24dfe7ef-d542-4703-b0d3-2dd8b750a3cb",
+      "name": "Hackathon Finder Agent",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Query', `The search query to find hackathons`, 'string') }}",
+        "options": {
+          "search_depth": "basic",
+          "max_results": 2,
+          "include_raw_content": false
+        }
+      },
+      "type": "@tavily/n8n-nodes-tavily.tavilyTool",
+      "typeVersion": 1,
+      "position": [
+        320,
+        384
+      ],
+      "id": "1b73c54c-ad0a-4d5c-ade0-5bde8dc8a532",
+      "name": "Search in Tavily",
+      "credentials": {
+        "tavilyApi": {
+          "id": "rr0xEEAO2jrIuyB8",
+          "name": "Tavily account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Original User Request:\n{{ $('When chat message received').item.json.chatInput }}\n\nRaw Research Data (from Agent 1):\n{{ $('Hackathon Finder Agent').item.json.output }}\n\nPersonalized Candidate Recommendations (from Agent 2):\n{{ $('Hackathon Personalizer').item.json.output }}",
+        "options": {
+          "systemMessage": "You are the Supervisor and Governance Agent in a multi-agent research system.\nYour job is to audit and validate the personalized draft produced by Agent 2 against the original user query and raw data from Agent 1.\n\nYour Review Steps:\n1. Relevancy Check: Verify if the selected hackathons strictly match the user's location (Jeddah, Saudi Arabia) and primary interests.\n2. Accuracy Check: Confirm that all hackathon titles, deadlines, and registration links originate from Agent 1's verified raw data (NO fake or hallucinated links).\n3. Quality Check: Ensure the presentation is clear, professional, and well-structured.\n\nOutput Rules:\n- If all checks pass, start your response strictly with \"Status: APPROVED\" and present the final polished answer for the user in clean Arabic or English.\n- If any check fails (e.g., outdated dates, hallucinated link, irrelevant location), start your response strictly with \"Status: REJECTED\" and explain the specific reason for failure.\n\nIf Agent 1 or Agent 2 returned valid hackathon JSON data, mark status as APPROVED. Do not reject due to formatting or minor criteria if raw hackathon details (Name, Date, Link) exist."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        880,
+        32
+      ],
+      "id": "2ae784ba-77e0-478a-973f-f2bf75859ab3",
+      "name": "Supervisor Agent"
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 3
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        672,
+        384
+      ],
+      "id": "77614060-68e0-4437-9479-4ca503f31af0",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Hackathon Finder Agent').item.json.output }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are the Hackathon Personalizer Agent. Your job is to take the raw hackathons provided by Agent 1 and filter, score, and personalize them specifically for the user.\n\nUser Profile & Technical Stack:\n- Role: Full Stack Software Engineer\n- Core Stack: Next.js, Angular, TypeScript, .NET / ASP.NET Core API, Node.js, Entity Framework Core.\n- Key Interests: AI Application Development, Smart Systems, Web Development, Passenger Analytics.\n- Location Preference: Saudi Arabia (Jeddah first, then National/Online).\n\nInstructions:\n1. Evaluate each hackathon from Agent 1 against the user's stack and interests.\n2. Calculate a Match Score (0–100%) for each event based on relevance to Next.js, AI, Angular, or .NET.\n3. Filter and return the top 3 best matching hackathons.\n4. Keep the output extremely clean and strictly formatted in Markdown.\n\nOutput Format Standard:\nReturn the response formatted like this:\n\n### Recommended Hackathons Matched to Your Profile\n\n#### 1. [Hackathon Name]\n- **Match Score:** 95% (Highly relevant to AI & Web Dev)\n- **Date:** [Start Date - End Date]\n- **Location:** [Location / Online]\n- **Why it matches:** [1 short sentence explaining match with Next.js/AI/Software Stack]\n- **Official Registration:** 🔗 [Official Link Title](URL)\n\n---",
+          "maxIterations": 4
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        528,
+        160
+      ],
+      "id": "fbf1e803-eb33-40e2-a893-1dabddfcf153",
+      "name": "Hackathon Personalizer"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0659c33c-c334-4a75-8c7e-059e874784f8",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "APPROVED",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1232,
+        32
+      ],
+      "id": "989f4f96-3629-4652-8049-0292b5b93afc",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $('Hackathon Personalizer').item.json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1456,
+        -16
+      ],
+      "id": "1d6e7b43-c56e-4606-baff-122b3fc7eb7a",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "amount": 20
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1456,
+        256
+      ],
+      "id": "f2f8919c-965d-4993-9140-b2d71a9a6248",
+      "name": "Wait",
+      "webhookId": "c389ff4f-05d7-43c1-8d7a-e0e21e624bec"
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3.8-27b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        176,
+        368
+      ],
+      "id": "8095f201-b41e-4e43-9ca1-c99191f56d25",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "f7b96eOyOOZA6vd8",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3.8-27b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        544,
+        384
+      ],
+      "id": "0285f106-3c08-4f80-8e44-7072fdb8ed6c",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "f7b96eOyOOZA6vd8",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        960,
+        272
+      ],
+      "id": "b5a72a67-eb75-4414-aef1-83ed1e191139",
+      "name": "Groq Chat Model2",
+      "credentials": {
+        "groqApi": {
+          "id": "f7b96eOyOOZA6vd8",
+          "name": "Groq account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Hackathon Finder Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hackathon Finder Agent": {
+      "main": [
+        [
+          {
+            "node": "Hackathon Personalizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search in Tavily": {
+      "ai_tool": [
+        [
+          {
+            "node": "Hackathon Finder Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supervisor Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Hackathon Personalizer",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hackathon Personalizer": {
+      "main": [
+        [
+          {
+            "node": "Supervisor Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Hackathon Personalizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Hackathon Finder Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Hackathon Personalizer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Supervisor Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "versionId": "da38d0db-6a8d-4bdb-850e-b0d392cb7b65",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e6eb86a1d84ebb3b99274fa81e9a9f79f7f3ee9ee07fd9bb294ec721272324eb"
+  },
+  "nodeGroups": [],
+  "id": "wuKQkyxx9UoPtjZn",
+  "tags": []
+}
