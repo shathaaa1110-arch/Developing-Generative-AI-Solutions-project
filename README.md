@@ -12,8 +12,8 @@ SDAIA Academy on GitHub: https://github.com/SDAIAAcademy
 
 ## Team
 
-| Member | GitHub | Role |
-|---|---|---|
+| Member | GitHub 
+|---|---|
 | Shatha Alanazi | [@your-username](https://github.com/shathaaa1110-arch) 
 | Haya Aldossari | [@their-username](https://github.com/hayaaldossari) 
 | Yara Algarni | [@their-username](https://github.com/yaraalgarni-dot) 
